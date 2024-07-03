@@ -178,13 +178,13 @@ group = Group()
 # generateTilemapBtn = Button(100, 128+64+64, 128+64, 64, "Gerar Tilemap")
 # group.Add(generateTilemapBtn)
 
-tilemap = Tilemap(50, 50)
+tilemap = Tilemap(20, 12)
 group.Add(tilemap)
 
 exportTilemapToFileBtn = Button(1280-128-64, 720-128, 128, 64, "Exportar", lambda: ExportTilemapToFile(tilemap))
 group.Add(exportTilemapToFileBtn)
 
-recenterBtn = Button(1280-128-64, 720-128-64-64, 128, 64, "Recentralizar", lambda: Recenter())
+recenterBtn = Button(1280-128-64, 720-128-64-64, 128, 64, "Recenter", lambda: Recenter())
 group.Add(recenterBtn)
 
 #toolBar = ToolBar()
