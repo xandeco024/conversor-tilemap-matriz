@@ -10,7 +10,7 @@ pygame.display.set_caption("Conversor Tilemap Matriz")
 
 selectedPaint = 0
 
-editArea = pygame.surface.Surface((screen.get_width()-96, screen.get_height()))
+
 
 scale = 1
 
@@ -77,17 +77,6 @@ class Button:
         #display text on center of button
         surface.blit(text, (self.rect.x + self.rect.width/2 - text.get_width()/2, self.rect.y + self.rect.height/2 - text.get_height()/2))
 
-class ToolBar:
-    def __init__(self):
-        self.rect = pygame.Rect(0, 0, 96, screen.get_height())
-        self.color = (70, 70, 70)
-
-    def Update(self):
-        pass
-
-    def Draw(self, surface):
-        pygame.draw.rect(surface, self.color, self.rect)
-
 class Tile:
     def __init__(self, x, y, w, h):
         self.rect = pygame.Rect(x, y, w, h)
@@ -101,7 +90,7 @@ class Tile:
 
     def Update(self):
         mouse = pygame.mouse.get_pos()
-        mouse = (mouse[0] - offset[0], mouse[1] - offset[1])
+        mouse = (mouse[0] - offset[0] - 96, mouse[1] - offset[1])
 
         if self.rect.collidepoint(mouse):
             if pygame.mouse.get_pressed()[0]:
@@ -165,44 +154,118 @@ class Group:
             if hasattr(obj, 'Draw'):
                 obj.Draw(surface)
 
+class ToolBar:
+    def __init__(self, editArea):
+        self.surface = pygame.Surface((96, screen.get_height()))
+        self.editArea = editArea
+        self.color = (100, 100, 50)
+
+        self.exportTilemapToFileBtn = Button(0, 720-128, 64, 32, "Exportar", lambda: ExportTilemapToFile(self.editArea.tilemap))
+
+        self.recenterBtn = Button(0, 720-128-64-64, 64, 32, "Recenter", lambda: Recenter())
+
+    def Update(self):
+        self.exportTilemapToFileBtn.Update()
+        self.recenterBtn.Update()
+
+    def Draw(self, surface):
+        self.surface.fill(self.color)
+        self.surface.blit(pygame.font.Font(None, 32).render("1 - Air", True, (255, 255, 255)), (0, 0))
+        self.surface.blit(pygame.font.Font(None, 32).render("2 - Grass", True, (255, 255, 255)), (0, 32))
+        self.surface.blit(pygame.font.Font(None, 32).render("3 - Dirt", True, (255, 255, 255)), (0, 64))
+        self.exportTilemapToFileBtn.Draw(self.surface)
+        self.recenterBtn.Draw(self.surface)
+
+        surface.blit(self.surface, (0, 0))
+
+class EditArea:
+    def __init__(self):
+        self.surface = pygame.Surface((screen.get_width() - 96, screen.get_height()))
+        self.color = (50, 50, 50)
+
+        self.tilemap = Tilemap(10, 10)
+
+        self.vScrollBar = ScrollBar(screen.get_width() - 96 - 10, 0, 10, screen.get_height(), "vertical")
+        self.hScrollBar = ScrollBar(0, screen.get_height() - 10, screen.get_width() - 96, 10, "horizontal")
+
+    def Update(self):
+        self.tilemap.Update()
+        self.vScrollBar.Update()
+        self.hScrollBar.Update()
+
+    def Draw(self, surface):
+        self.surface.fill(self.color)
+        self.tilemap.Draw(self.surface)
+        self.vScrollBar.Draw(self.surface)
+        self.hScrollBar.Draw(self.surface)
+
+        surface.blit(self.surface, (96, 0))
+
+class ScrollBar:
+    def __init__(self, x, y, w, h, orientation = "vertical"):
+        self.rect = pygame.Rect(x, y, w, h)
+        self.color = (100, 100, 100)
+        self.orientation = orientation
+
+        self.activated = False
+
+        if orientation == "vertical":
+            self.handle = pygame.Rect(x, y, w, h/10)
+
+        elif orientation == "horizontal":
+            self.handle = pygame.Rect(x, y, w/10, h)
+
+    def Update(self):
+        mousePos = pygame.mouse.get_pos()
+        mousePos = (mousePos[0] - offset[0] - 96, mousePos[1] - offset[1])
+
+        if self.handle.collidepoint(mousePos) and pygame.mouse.get_pressed()[0]:
+            self.activated = True
+
+        if not pygame.mouse.get_pressed()[0] and self.activated:
+            self.activated = False
+
+        if self.activated:
+            if self.orientation == "vertical":
+                self.handle.y = mousePos[1] - self.handle.height/2
+
+                if self.handle.y < self.rect.y:
+                    self.handle.y = self.rect.y
+
+                if self.handle.y + self.handle.height > self.rect.y + self.rect.height:
+                    self.handle.y = self.rect.y + self.rect.height - self.handle.height
+
+            elif self.orientation == "horizontal":
+                self.handle.x = mousePos[0] - self.handle.width/2
+
+                if self.handle.x < self.rect.x:
+                    self.handle.x = self.rect.x
+                
+                if self.handle.x + self.handle.width > self.rect.x + self.rect.width:
+                    self.handle.x = self.rect.x + self.rect.width - self.handle.width
+                
+
+    def Draw(self, surface):
+        pygame.draw.rect(surface, self.color, self.rect)
+        pygame.draw.rect(surface, (255, 255, 255), self.handle, 0, 10)
 # Game Loop
 
 group = Group()
 
-# inputMapaX = InputBox(100, 128-32, 128+64, 64, "Altura")
-# group.Add(inputMapaX)
+editArea = EditArea()
+group.Add(editArea)
+toolBar = ToolBar(editArea)
+group.Add(toolBar)
 
-# inputMapaY = InputBox(100, 126+64, 128+64, 64, "Largura")
-# group.Add(inputMapaY)
 
-# generateTilemapBtn = Button(100, 128+64+64, 128+64, 64, "Gerar Tilemap")
-# group.Add(generateTilemapBtn)
 
-tilemap = Tilemap(20, 12)
-group.Add(tilemap)
 
-exportTilemapToFileBtn = Button(1280-128-64, 720-128, 128, 64, "Exportar", lambda: ExportTilemapToFile(tilemap))
-group.Add(exportTilemapToFileBtn)
-
-recenterBtn = Button(1280-128-64, 720-128-64-64, 128, 64, "Recenter", lambda: Recenter())
-group.Add(recenterBtn)
-
-#toolBar = ToolBar()
-#group.Add(toolBar)
 
 def Recenter():
     offset[0] = 0
     offset[1] = 0
 
 def ExportTilemapToFile(tilemap):
-
-    #escreve esse array num txt
-
-    array = [
-        [0,0,0],
-        [0,0,0],
-        [0,0,0]
-        ]
     
     output = []
 
@@ -220,7 +283,6 @@ def ExportTilemapToFile(tilemap):
     with open("tilemap.txt", "w") as file:
         file.write("tilemap = [\n")
         for row in output:
-            #if last row, place comma, else, place nothing
             if output.index(row) == len(output) - 1:
                 file.write(f"    {row}\n")
             else:
