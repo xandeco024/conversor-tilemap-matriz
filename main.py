@@ -8,57 +8,109 @@ pygame.display.set_caption("Conversor Tilemap Matriz")
 
 #inserir tamanho do mapa, criar superficie e criar grid
 
+##pallete:
+#(125, 146, 158) - azul
+#(101, 85, 97) - cinza roxeado
+#(198, 198, 198) - cinza claro
+#(227, 227, 227) - cinza claro highlight
+
+dogica = 'assets/dogicapixel.ttf'
+dogicaBold = 'assets/dogicapixelbold.ttf'
+
 selectedPaint = 0
-
-
-
 scale = 1
-
 offset = [0,0]
+userText = ""
 
-class InputBox:
-    def __init__(self, x, y, w, h, txt):
+class InputField:
+    def __init__(self, x, y, w, h, txt, limit, callback = None, numberOnly = False):
         self.rect = pygame.Rect(x, y, w, h)
         self.normalColor = (255, 255, 0)
         self.seletedColor = (255, 255, 255)
         self.color = self.normalColor
         self.active = False
+        self.hover = False
         self.originalText = txt
         self.txt = txt
+        self.limit = limit
+        self.callback = callback
+        self.numberOnly = numberOnly
 
-    def Update(self):
-        mouse = pygame.mouse.get_pos()
-        keys = pygame.key.get_pressed()
+        self.outsideRect = pygame.Rect(x, y, w, h)
+        self.profundidadeRect = pygame.Rect(x, y, w, h)
+        self.bgRect = pygame.Rect(x + 2, y + 4, w - 4, h - 6)
+        self.activeRect = pygame.Rect(x - 2, y - 2, w + 4, h + 4)
 
-        if pygame.mouse.get_pressed()[0]:
-            if self.rect.collidepoint(mouse) and not self.active:
-                self.active = True
-                self.color = self.seletedColor
-            elif not self.rect.collidepoint(mouse) and self.active:
-                self.active = False
-                self.color = self.normalColor
+        self.font = pygame.font.Font(dogica, 18)
 
-        if keys[pygame.K_RETURN] and self.active:
-            self.active = False
-            self.color = self.normalColor
+    def Update(self, events):
+
+        mousePos = pygame.mouse.get_pos()
+
+        if self.rect.collidepoint(mousePos):
+            self.hover = True
+        
+        else:
+            self.hover = False
+
+        for event in events:
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if not self.rect.collidepoint(mousePos) and self.active:
+                    self.active = False
+                    self.color = self.normalColor
+
+                elif self.rect.collidepoint(mousePos) and not self.active:
+                    self.active = True
+                    self.color = self.seletedColor
+
+            if event.type == pygame.KEYDOWN:
+
+                if self.active:
+                    if event.key == pygame.K_BACKSPACE:
+                        self.txt = self.txt[:-1]
+
+                    elif event.key == pygame.K_RETURN:
+                        self.active = False
+                        self.color = self.normalColor
+
+                    else:
+                        if self.txt == self.originalText:
+                            self.txt = ""
+
+                        if not self.numberOnly:
+                            if len(self.txt < self.limit):
+                                self.txt += event.unicode
+
+                        else:
+                            if event.unicode.isnumeric() and len(self.txt) < self.limit:
+                                self.txt += event.unicode
 
     def Draw(self, surface):
-        pygame.draw.rect(surface, self.color, self.rect, 0, 10)
-        font = pygame.font.Font(None, 32)
-        text = font.render(self.txt, True, (0, 0, 0))
-        surface.blit(text, (self.rect.x + 5, self.rect.y + 5))
+        pygame.draw.rect(surface,(50, 50, 50), self.profundidadeRect)
+        pygame.draw.rect(surface,(255, 255, 255), self.bgRect)
+        pygame.draw.rect(surface,(0, 0, 0), self.bgRect, 2)
+        pygame.draw.rect(surface,(255, 255 ,255 ), self.outsideRect, 2)
+
+        if self.active or self.hover:
+            pygame.draw.rect(surface, (255, 255, 255), self.activeRect, 2)
+
+        text = self.font.render(self.txt, True, (0, 0, 0))
+        surface.blit(text, (self.bgRect.x + self.bgRect.width/2 - text.get_width()/2, self.bgRect.y + self.bgRect.height/2 - text.get_height()/2))
 
 class Button:
     def __init__(self, x, y, w, h, txt, callback):
         self.rect = pygame.Rect(x, y, w, h)
-        self.normalColor = (0, 255, 0)
-        self.seletedColor = (255, 255, 255)
+        self.normalColor = (198, 198, 198)
+        self.seletedColor = (227, 227, 227)
         self.color = self.normalColor
         self.active = False
         self.txt = txt
         self.callback = callback
 
-    def Update(self):
+        self.shadowRect = pygame.Rect(self.rect.x, self.rect.y, self.rect.width, self.rect.height + 5)
+        self.highlightRect = pygame.Rect(self.rect.x + 2, self.rect.y + 2, self.rect.width - 4, self.rect.height - 4)
+
+    def Update(self, events):
         mouse = pygame.mouse.get_pos()
 
         if self.rect.collidepoint(mouse):
@@ -71,7 +123,10 @@ class Button:
             self.color = self.normalColor
 
     def Draw(self, surface):
-        pygame.draw.rect(surface, self.color, self.rect, 0, 10)
+        pygame.draw.rect(surface, (self.color[0] - 100, self.color[1] - 100, self.color[2] - 100), self.shadowRect)#shadow
+        pygame.draw.rect(surface, self.color, self.rect)
+        pygame.draw.rect(surface, (10, 10, 10), self.shadowRect, 2)
+        pygame.draw.rect(surface, (255, 255, 255), self.highlightRect, 2)
         font = pygame.font.Font(None, 32)
         text = font.render(self.txt, True, (0, 0, 0))
         #display text on center of button
@@ -88,7 +143,7 @@ class Tile:
         self.color = self.airColor
         self.borderColor = (0, 0, 0)
 
-    def Update(self):
+    def Update(self, events):
         mouse = pygame.mouse.get_pos()
         mouse = (mouse[0] - offset[0] - 96, mouse[1] - offset[1])
 
@@ -124,10 +179,10 @@ class Tilemap:
 
             self.rows.append(row)
 
-    def Update(self):
+    def Update(self, events):
         for row in self.rows:
             for tile in row:
-                tile.Update()
+                tile.Update(events)
 
     def Draw(self, surface):
         for row in self.rows:
@@ -144,10 +199,10 @@ class Group:
     def Remove(self, obj):
         self.objects.remove(obj)
 
-    def Update(self):
+    def Update(self, events):
         for obj in self.objects:
             if hasattr(obj, 'Update'):
-                obj.Update()
+                obj.Update(events)
 
     def Draw(self, surface):
         for obj in self.objects:
@@ -158,21 +213,31 @@ class ToolBar:
     def __init__(self, editArea):
         self.surface = pygame.Surface((96, screen.get_height()))
         self.editArea = editArea
-        self.color = (100, 100, 50)
+        self.color = (125, 146, 158)
 
-        self.exportTilemapToFileBtn = Button(0, 720-128, 64, 32, "Exportar", lambda: ExportTilemapToFile(self.editArea.tilemap))
+        self.xSizeInput = InputField(16, 16, 64, 32, "x", 4, None, True)
+        self.ySizeInput = InputField(16, 16 + 32 + 16, 64, 32, "y", 4, None, True)
 
-        self.recenterBtn = Button(0, 720-128-64-64, 64, 32, "Recenter", lambda: Recenter())
+        self.importBtn = Button(16, 256, 64, 64, "im", lambda: print("import"))
+        self.resizeBtn = Button(16, 256+64, 64, 64, "rs", lambda: print("resize"))
+        self.exportTilemapToFileBtn = Button(16, 720-128, 64, 64, "ex", lambda: ExportTilemapToFile(self.editArea.tilemap))
+        self.recenterBtn = Button(16, 720-128-64-64, 64, 64, "rc", lambda: Recenter())
 
-    def Update(self):
-        self.exportTilemapToFileBtn.Update()
-        self.recenterBtn.Update()
+    def Update(self, events):
+        self.xSizeInput.Update(events)
+        self.ySizeInput.Update(events)
+
+        self.importBtn.Update(events)
+        self.resizeBtn.Update(events)
+        self.exportTilemapToFileBtn.Update(events)
+        self.recenterBtn.Update(events)
 
     def Draw(self, surface):
         self.surface.fill(self.color)
-        self.surface.blit(pygame.font.Font(None, 32).render("1 - Air", True, (255, 255, 255)), (0, 0))
-        self.surface.blit(pygame.font.Font(None, 32).render("2 - Grass", True, (255, 255, 255)), (0, 32))
-        self.surface.blit(pygame.font.Font(None, 32).render("3 - Dirt", True, (255, 255, 255)), (0, 64))
+        self.xSizeInput.Draw(self.surface)
+        self.ySizeInput.Draw(self.surface)
+        self.importBtn.Draw(self.surface)
+        self.resizeBtn.Draw(self.surface)
         self.exportTilemapToFileBtn.Draw(self.surface)
         self.recenterBtn.Draw(self.surface)
 
@@ -181,17 +246,17 @@ class ToolBar:
 class EditArea:
     def __init__(self):
         self.surface = pygame.Surface((screen.get_width() - 96, screen.get_height()))
-        self.color = (50, 50, 50)
+        self.color = (101, 85, 97)
 
         self.tilemap = Tilemap(10, 10)
 
         self.vScrollBar = ScrollBar(screen.get_width() - 96 - 10, 0, 10, screen.get_height(), "vertical")
         self.hScrollBar = ScrollBar(0, screen.get_height() - 10, screen.get_width() - 96, 10, "horizontal")
 
-    def Update(self):
-        self.tilemap.Update()
-        self.vScrollBar.Update()
-        self.hScrollBar.Update()
+    def Update(self, events):
+        self.tilemap.Update(events)
+        self.vScrollBar.Update(events)
+        self.hScrollBar.Update(events)
 
     def Draw(self, surface):
         self.surface.fill(self.color)
@@ -215,7 +280,7 @@ class ScrollBar:
         elif orientation == "horizontal":
             self.handle = pygame.Rect(x, y, w/10, h)
 
-    def Update(self):
+    def Update(self, events):
         mousePos = pygame.mouse.get_pos()
         mousePos = (mousePos[0] - offset[0] - 96, mousePos[1] - offset[1])
 
@@ -257,10 +322,6 @@ group.Add(editArea)
 toolBar = ToolBar(editArea)
 group.Add(toolBar)
 
-
-
-
-
 def Recenter():
     offset[0] = 0
     offset[1] = 0
@@ -291,7 +352,8 @@ def ExportTilemapToFile(tilemap):
 
 running = True
 while running:
-    for event in pygame.event.get():
+    events = pygame.event.get()
+    for event in events:
         if event.type == pygame.QUIT:
             running = False
 
@@ -305,27 +367,14 @@ while running:
             if event.key == pygame.K_3:
                 selectedPaint = 3
 
-        if event.type == pygame.MOUSEWHEEL:
-            if event.y == 1:
-                if scale < 2:
-                    scale += 0.1
-
-                else :
-                    scale = 2
-
-            if event.y == -1:
-                if scale > 0.1:
-                    scale -= 0.1
-
-                else :
-                    scale = 0.1
-
         if event.type == pygame.MOUSEMOTION:
             if event.buttons[1]:
                 offset[0] += event.rel[0]
                 offset[1] += event.rel[1]
 
-    group.Update()
+    print(userText)
+
+    group.Update(events)
 
     screen.fill((50, 50, 60))
 
