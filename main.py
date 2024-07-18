@@ -16,23 +16,36 @@ def main(page: ft.Page):
     
     page.title = "Pygas"
 
-    controls = [
-        toolsContainer = ft.Container(
-            width=200,
-            height=1000,
-            bgcolor="red",
-            margin=0,
-        ),
+    view = ft.Row(
+        width="100%",
+        height="100%",
 
-        mainContainer = ft.Container(
-            width="100",
-            height="100",
-            bgcolor="blue",
-            margin=0,
-        ),
-    ]
+        controls = [
+            ft.Column(
+                width="20%",
+                height="100%",
+                controls = [
+                    ft.Container(
+                        width="100%",
+                        height="100%",
+                        bgcolor="lightgray",
+                        content = [
+                            AseTxtBtn("New"),
+                            AseTxtBtn("Open"),
+                            AseTxtBtn("Save"),
+                            AseTxtBtn("Export"),
+                            ]
+                        )
+                    ]
+                ),
+            ft.Container(
+                width="80%",
+                height="100%",
+                )
+            ]
+        )
 
     #page.add(toolsContainer)
-    page.add(controls)
+    page.add(view)
 
 ft.app(main)
