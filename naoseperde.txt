@@ -1,0 +1,7 @@
+- escolher numero para o pincel
+- pintar tiles com o numero escolhido
+- escolher cor para numero
+- movimentar tilemap 
+- redimensionar tilemap
+- exportar tilemap
+- importar tilemap
